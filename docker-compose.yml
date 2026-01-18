@@ -1,0 +1,66 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: moviesdb-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-moviesdb}
+      POSTGRES_USER: ${POSTGRES_USER:-moviesdb}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-moviesdb}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-moviesdb}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - moviesnet
+
+  api:
+    build:
+      context: ./api
+    container_name: moviesdb-api
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-moviesdb}:${POSTGRES_PASSWORD:-moviesdb}@db:5432/${POSTGRES_DB:-moviesdb}
+      SECRET_KEY: ${JWT_SECRET:-change-me-in-production}
+      CORS_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173}
+      TMDB_API_KEY: ${TMDB_API_KEY:-}
+      OMDB_API_KEY: ${OMDB_API_KEY:-}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./api/app:/app/app
+      - ./scripts:/app/scripts
+      - ./data:/app/data
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - moviesnet
+
+  frontend:
+    build:
+      context: ./frontend
+      target: development
+    container_name: moviesdb-frontend
+    environment:
+      VITE_API_URL: http://api:8000
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/index.html:/app/index.html
+    depends_on:
+      - api
+    networks:
+      - moviesnet
+
+volumes:
+  postgres_data:
+
+networks:
+  moviesnet:
+    driver: bridge
