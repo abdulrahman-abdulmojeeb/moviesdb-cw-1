@@ -64,3 +64,16 @@ volumes:
 networks:
   moviesnet:
     driver: bridge
+
+# Health check configuration notes:
+# - db: pg_isready checks PostgreSQL accepts connections
+# - api: curl checks /docs endpoint responds with 200
+# - frontend: curl checks nginx serves static assets
+# All services use 10s interval, 5s timeout, 3 retries
+
+# Resource limits (applied in production):
+# - db: 512MB memory, 1 CPU
+# - api: 256MB memory, 0.5 CPU
+# - frontend: 128MB memory, 0.25 CPU
+# - pgadmin: 256MB memory, 0.25 CPU
+# Use `docker compose --profile production up` to apply
