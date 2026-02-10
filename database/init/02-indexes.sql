@@ -85,3 +85,12 @@ CREATE INDEX IF NOT EXISTS idx_app_users_username ON app_users (username);
 
 -- Index for email lookup
 CREATE INDEX IF NOT EXISTS idx_app_users_email ON app_users (email);
+
+-- Partial indexes for common filtered queries
+-- High-rated movies (frequently accessed in recommendations)
+CREATE INDEX IF NOT EXISTS idx_ratings_high
+    ON ratings (movie_id) WHERE rating >= 4.0;
+
+-- Active app users (skip deactivated in auth lookups)
+CREATE INDEX IF NOT EXISTS idx_app_users_active
+    ON app_users (username) WHERE is_active = true;
