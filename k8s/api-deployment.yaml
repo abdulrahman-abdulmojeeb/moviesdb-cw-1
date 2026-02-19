@@ -1,0 +1,97 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: moviesdb-api
+  namespace: moviesdb
+  labels:
+    app: moviesdb-api
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8000
+      targetPort: 8000
+  selector:
+    app: moviesdb-api
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: moviesdb-api
+  namespace: moviesdb
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: moviesdb-api
+  template:
+    metadata:
+      labels:
+        app: moviesdb-api
+    spec:
+      containers:
+        - name: api
+          image: moviesdb-api:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DATABASE_URL
+              value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@moviesdb-postgres:5432/$(POSTGRES_DB)"
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: moviesdb-config
+                  key: POSTGRES_USER
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: moviesdb-config
+                  key: POSTGRES_DB
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: moviesdb-secrets
+                  key: POSTGRES_PASSWORD
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: moviesdb-secrets
+                  key: JWT_SECRET
+            - name: CORS_ORIGINS
+              valueFrom:
+                configMapKeyRef:
+                  name: moviesdb-config
+                  key: ALLOWED_ORIGINS
+            - name: ENABLE_RATE_LIMIT
+              valueFrom:
+                configMapKeyRef:
+                  name: moviesdb-config
+                  key: ENABLE_RATE_LIMIT
+            - name: TMDB_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: moviesdb-secrets
+                  key: TMDB_API_KEY
+            - name: OMDB_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: moviesdb-secrets
+                  key: OMDB_API_KEY
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 10

@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: moviesdb-frontend
+  namespace: moviesdb
+  labels:
+    app: moviesdb-frontend
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 80
+  selector:
+    app: moviesdb-frontend
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: moviesdb-frontend
+  namespace: moviesdb
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: moviesdb-frontend
+  template:
+    metadata:
+      labels:
+        app: moviesdb-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: moviesdb-frontend:latest
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5

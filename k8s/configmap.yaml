@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: moviesdb-config
+  namespace: moviesdb
+data:
+  POSTGRES_DB: moviesdb
+  POSTGRES_USER: moviesdb
+  ALLOWED_ORIGINS: "https://moviesdb.example.com"
+  VITE_API_URL: "http://moviesdb-api:8000"
+  ENABLE_RATE_LIMIT: "true"
