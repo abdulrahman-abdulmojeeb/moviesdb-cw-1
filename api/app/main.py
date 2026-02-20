@@ -75,3 +75,9 @@ async def root():
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy"}
+
+# CORS configuration:
+# - origins: configurable via CORS_ORIGINS env var (comma-separated)
+# - methods: GET, POST, PUT, PATCH, DELETE
+# - credentials: true (required for JWT cookie flow)
+# - max_age: 600 seconds (preflight cache)
