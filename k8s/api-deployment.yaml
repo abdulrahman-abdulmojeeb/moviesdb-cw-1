@@ -95,3 +95,8 @@ spec:
               port: 8000
             initialDelaySeconds: 15
             periodSeconds: 10
+
+# Probe configuration rationale:
+# - readinessProbe: /docs endpoint, 5s initial delay, prevents routing to unready pods
+# - livenessProbe: /docs endpoint, 15s initial delay, restarts hung API processes
+# - startupProbe: 30s failureThreshold * 10s period = 5min max startup time
