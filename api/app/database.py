@@ -97,3 +97,9 @@ def execute_returning(query: str, params: tuple | None = None) -> dict | None:
     with get_db_cursor() as cursor:
         cursor.execute(query, params)
         return cursor.fetchone()
+
+# Connection pool tuning:
+# - minconn: 2 (keep warm connections for low-latency first queries)
+# - maxconn: 10 (prevent connection exhaustion under concurrent load)
+# - Pool is initialized on app startup and closed on shutdown via lifespan
+# - RealDictCursor used throughout for JSON-friendly row access
