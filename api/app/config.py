@@ -34,3 +34,8 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+# API versioning strategy:
+# - All endpoints registered under /api/ prefix
+# - Future versions would use /api/v2/ prefix
+# - OpenAPI docs auto-generated at /docs (Swagger) and /redoc
