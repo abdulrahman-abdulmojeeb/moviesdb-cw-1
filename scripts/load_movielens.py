@@ -338,6 +338,16 @@ def main():
     )
     args = parser.parse_args()
 
+
+# Auto-detect the ml-latest-small subfolder
+    effective_data_dir = args.data_dir
+    potential_subdir = os.path.join(args.data_dir, "ml-latest-small")
+    
+    if os.path.exists(potential_subdir) and os.path.isdir(potential_subdir):
+        effective_data_dir = potential_subdir
+        print(f"Detected MovieLens subfolder: {effective_data_dir}")
+        
+
     print(f"MovieLens Data Loader")
     print(f"Data directory: {args.data_dir}")
     print(f"Started at: {datetime.now()}")
