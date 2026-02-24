@@ -356,11 +356,11 @@ def main():
     conn = get_db_connection()
 
     try:
-        load_movies(conn, args.data_dir)
-        load_ratings(conn, args.data_dir)
-        load_tags(conn, args.data_dir)
-        load_links(conn, args.data_dir)
-        load_personality(conn, args.data_dir)
+        load_movies(conn, effective_data_dir)
+        load_ratings(conn, effective_data_dir)
+        load_tags(conn, effective_data_dir)
+        load_links(conn, effective_data_dir)
+        load_personality(conn, effective_data_dir)
 
         print("-" * 50)
         print("Data loading complete!")
