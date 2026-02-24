@@ -63,6 +63,20 @@ if grep -q "OMDB_API_KEY=." .env 2>/dev/null; then
 fi
 
 echo ""
+
+# Environment validation helper (called during pre-flight)
+validate_env() {
+    local required_vars=("POSTGRES_DB" "POSTGRES_USER" "POSTGRES_PASSWORD" "SECRET_KEY")
+    local missing=0
+    for var in "${required_vars[@]}"; do
+        if [ -z "${!var:-}" ]; then
+            echo "  Missing required variable: $var"
+            missing=$((missing + 1))
+        fi
+    done
+    return $missing
+}
+
 echo "=== Setup Complete ==="
 echo "Frontend: http://localhost:5173"
 echo "API:      http://localhost:8000"
