@@ -10,6 +10,7 @@ A full-stack web application for exploring and analysing the MovieLens dataset, 
 - **Predictive Ratings** — Genre-similarity based rating predictions with confidence intervals
 - **Personality Analysis** — Big Five trait correlations with viewing preferences and viewer segments
 - **Collections** — Create and manage personal movie lists (requires authentication)
+- **My Ratings** — Rate movies and track your personal rating history
 - **Multi-Source Ratings** — Aggregated scores from MovieLens, IMDb, TMDB, Rotten Tomatoes, and Metacritic
 
 ## Architecture
@@ -30,55 +31,61 @@ chmod +x setup.sh
 ```
 
 This will:
-1. Download the MovieLens small dataset
-2. Build and start Docker containers
-3. Initialise the database schema and indexes
-4. Load movie, rating, and tag data
-5. Generate synthetic personality profiles
-6. Optionally enrich with TMDB/OMDB data (if API keys provided)
+1. Create a `.env` file from `.env.example` (if not present)
+2. Download the MovieLens small dataset
+3. Build and start Docker containers
+4. Initialise the database schema and indexes
+5. Load movie, rating, and tag data
+6. Generate synthetic personality profiles
+7. Optionally enrich with TMDB/OMDB data (if API keys provided)
 
 ## Services
 
-| Service  | URL                          |
-|----------|------------------------------|
-| Frontend | http://localhost:5173         |
-| API      | http://localhost:8000         |
-| API Docs | http://localhost:8000/docs    |
-| Database | localhost:5432               |
+| Service  | URL                       |
+|----------|---------------------------|
+| Frontend | http://localhost:5173      |
+| API      | http://localhost:8000      |
+| API Docs | http://localhost:8000/docs |
+| Database | localhost:5432             |
 
 ## Project Structure
 
 ```
-moviesdb-cw-1/
-  api/              # FastAPI backend
+movies-db/
+  api/                # FastAPI backend
     app/
-      auth/         # JWT authentication
-      routers/      # API endpoint modules
-      middleware/    # Rate limiting
-    tests/          # pytest test suite
-  frontend/         # React + TypeScript + Vite
+      auth/           # JWT authentication (register, login, refresh)
+      routers/        # API endpoint modules (6 routers)
+      middleware/     # Rate limiting
+    tests/            # pytest test suite
+  frontend/           # React + TypeScript + Vite
     src/
-      components/   # UI components (shadcn/ui)
-      pages/        # 9 application pages
-      hooks/        # Auth and theme hooks
-      services/     # API client with interceptors
+      components/
+        layout/       # Sidebar, ThemeProvider
+        ui/           # 16 shadcn/ui components
+      pages/          # 10 application pages
+      hooks/          # Auth and theme hooks
+      services/       # Axios API client with interceptors
   database/
-    init/           # SQL schema, indexes, external ratings
-  scripts/          # Data loading and enrichment
-  k8s/              # Kubernetes deployment manifests
+    init/             # SQL schema, indexes, external ratings
+  scripts/            # Data loading and enrichment
+  k8s/                # Kubernetes deployment manifests
 ```
 
 ## API Endpoints
 
-| Group        | Endpoints                                           |
-|-------------|-----------------------------------------------------|
-| Auth        | POST login, register, refresh; GET profile           |
-| Movies      | GET list (paginated), detail, rating distribution    |
-| Genres      | GET list, popularity, polarisation                   |
-| Ratings     | GET patterns, cross-genre, consistency               |
-| Predictions | POST predict; GET similar, distribution, preview     |
-| Personality | GET overview, correlations, profiles, segments       |
-| Collections | CRUD operations (authenticated)                      |
+35 endpoints across 7 groups:
+
+| Group        | Endpoints                                                         |
+|-------------|-------------------------------------------------------------------|
+| Root        | `GET /` info, `GET /health` health check                          |
+| Auth        | `POST` register, login, refresh; `GET` `PATCH` profile            |
+| Movies      | `GET` list (paginated + filtered), detail, rating distribution    |
+| Genres      | `GET` list, popularity, polarisation                              |
+| Ratings     | `GET` patterns, cross-genre, low-raters, consistency; `POST` `GET` `DELETE` user ratings |
+| Predictions | `POST` predict; `GET` similar, preview panel                      |
+| Personality | `GET` traits overview, genre correlation, genre profile, segments |
+| Collections | Full CRUD + add/remove movies (authenticated)                     |
 
 ## Kubernetes Deployment
 
@@ -112,8 +119,8 @@ Copy `.env.example` to `.env` and configure:
 
 ## Tech Stack
 
-- **Backend**: Python 3.12, FastAPI, psycopg2, JWT + bcrypt auth
-- **Frontend**: React 18, TypeScript, Vite 6, Tailwind CSS, shadcn/ui, Recharts, TanStack Query
-- **Database**: PostgreSQL 16 with 30+ optimised indexes
+- **Backend**: Python 3.13, FastAPI 0.135, SQLAlchemy 2.0, psycopg2, JWT + Argon2 auth
+- **Frontend**: React 19, TypeScript 5.9, Vite 7, Tailwind CSS 4, shadcn/ui, Recharts 3, TanStack Query
+- **Database**: PostgreSQL 18 with 30+ optimised indexes
 - **Deployment**: Docker Compose (development), Kubernetes (production)
-- **Testing**: pytest with mocked database layer
+- **Testing**: pytest 9 with mocked database layer

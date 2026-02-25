@@ -1,6 +1,5 @@
 import { Routes, Route } from 'react-router-dom'
 import { Sidebar } from '@/components/layout/Sidebar'
-import { useAuth } from '@/hooks/useAuth'
 import Dashboard from './pages/Dashboard'
 import GenreReports from './pages/GenreReports'
 import RatingPatterns from './pages/RatingPatterns'
@@ -12,14 +11,12 @@ import Profile from './pages/Profile'
 import BuildDetails from './pages/BuildDetails'
 
 function App() {
-  const { isAuthenticated, logout } = useAuth()
-
   return (
     <div className="flex h-screen bg-background">
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-background focus:text-foreground">
         Skip to main content
       </a>
-      <Sidebar isAuthenticated={isAuthenticated} onLogout={logout} />
+      <Sidebar />
 
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Add top padding on mobile for fixed header */}

@@ -90,7 +90,7 @@ export default function RatingPatterns() {
                     <XAxis type="number" domain={[0, 5]} />
                     <YAxis type="category" dataKey="genre" width={80} />
                     <Tooltip />
-                    <Bar dataKey="mean_user_avg" fill="#3b82f6" name="Mean Rating" />
+                    <Bar dataKey="mean_user_avg" fill="var(--primary)" name="Mean Rating" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -118,8 +118,8 @@ export default function RatingPatterns() {
                       cx="50%"
                       cy="50%"
                       outerRadius={80}
-                      label={({ rater_type, percent }) =>
-                        `${rater_type}: ${(percent * 100).toFixed(0)}%`
+                      label={({ name, percent }: { name?: string; percent?: number }) =>
+                        `${name ?? ""}: ${((percent ?? 0) * 100).toFixed(0)}%`
                       }
                     >
                       {lowRaters.map((_: unknown, index: number) => (
@@ -197,7 +197,7 @@ export default function RatingPatterns() {
                   <XAxis type="number" domain={[0, 5]} />
                   <YAxis type="category" dataKey="genre" width={100} />
                   <Tooltip />
-                  <Bar dataKey="avg_rating" fill="#8b5cf6" name="Avg Rating" />
+                  <Bar dataKey="avg_rating" fill="var(--primary)" name="Avg Rating" />
                 </BarChart>
               </ResponsiveContainer>
             </div>

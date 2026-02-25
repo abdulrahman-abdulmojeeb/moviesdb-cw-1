@@ -45,7 +45,7 @@ export default function GenreReports() {
 
   const getBarColor = (value: number) => {
     if (value >= 4) return "#22c55e"
-    if (value >= 3.5) return "#84cc16"
+    if (value >= 3.5) return "#30bfc2"
     if (value >= 3) return "#eab308"
     return "#ef4444"
   }
@@ -80,7 +80,7 @@ export default function GenreReports() {
                   <XAxis type="number" domain={[0, 5]} />
                   <YAxis type="category" dataKey="genre" width={80} />
                   <Tooltip
-                    formatter={(value: number) => [value.toFixed(2), "Avg Rating"]}
+                    formatter={(value?: number) => [value?.toFixed(2) ?? "", "Avg Rating"]}
                   />
                   <Bar dataKey="avg_rating">
                     {popularity.map((entry, index) => (

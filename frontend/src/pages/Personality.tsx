@@ -129,8 +129,8 @@ export default function Personality() {
                     <Radar
                       name="Average"
                       dataKey="value"
-                      stroke="hsl(var(--primary))"
-                      fill="hsl(var(--primary))"
+                      stroke="var(--primary)"
+                      fill="var(--primary)"
                       fillOpacity={0.5}
                     />
                   </RadarChart>
@@ -200,7 +200,7 @@ export default function Personality() {
                     <XAxis type="number" domain={[0, 5]} />
                     <YAxis type="category" dataKey="genre" width={80} />
                     <Tooltip />
-                    <Bar dataKey="avg_rating" fill="#8b5cf6" />
+                    <Bar dataKey="avg_rating" fill="var(--primary)" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -248,15 +248,15 @@ export default function Personality() {
                   <Radar
                     name="Genre Lovers"
                     dataKey="genreLovers"
-                    stroke="#8b5cf6"
-                    fill="#8b5cf6"
+                    stroke="var(--primary)"
+                    fill="var(--primary)"
                     fillOpacity={0.5}
                   />
                   <Radar
                     name="Overall Average"
                     dataKey="overall"
-                    stroke="#6b7280"
-                    fill="#6b7280"
+                    stroke="var(--muted-foreground)"
+                    fill="var(--muted-foreground)"
                     fillOpacity={0.3}
                   />
                   <Legend />

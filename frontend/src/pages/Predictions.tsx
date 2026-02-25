@@ -205,9 +205,9 @@ export default function Predictions() {
                         <XAxis dataKey="rating" />
                         <YAxis />
                         <Tooltip
-                          formatter={(value: number) => [`${value}%`, "Percentage"]}
+                          formatter={(value?: number) => [`${value ?? 0}%`, "Percentage"]}
                         />
-                        <Bar dataKey="percentage" fill="hsl(var(--primary))" />
+                        <Bar dataKey="percentage" fill="var(--primary)" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
