@@ -80,11 +80,11 @@ def load_movies(conn, data_dir: str) -> None:
 
     # Insert genres
     print(f"  Inserting {len(all_genres)} genres...")
-    for genre in all_genres:
-        cursor.execute(
-            "INSERT INTO genres (name) VALUES (%s) ON CONFLICT (name) DO NOTHING",
-            (genre,)
-        )
+    execute_values(
+        cursor,
+        "INSERT INTO genres (name) VALUES %s ON CONFLICT (name) DO NOTHING",
+        [(g,) for g in all_genres]
+    )
     conn.commit()
 
     # Get genre IDs
@@ -251,15 +251,14 @@ def load_links(conn, data_dir: str) -> None:
 
     print(f"  Updating {len(links_data)} movie links...")
 
-    # Update movies table with IMDB and TMDB IDs
-    for movie_id, imdb_id, tmdb_id in links_data:
-        cursor.execute(
-            """
-            UPDATE movies SET imdb_id = %s, tmdb_id = %s
-            WHERE movie_id = %s
-            """,
-            (imdb_id, tmdb_id, movie_id)
-        )
+    # Batch update via temp table
+    cursor.execute("CREATE TEMP TABLE _tmp_links (movie_id INT, imdb_id TEXT, tmdb_id INT)")
+    execute_values(cursor, "INSERT INTO _tmp_links VALUES %s", links_data)
+    cursor.execute(
+        "UPDATE movies m SET imdb_id = t.imdb_id, tmdb_id = t.tmdb_id "
+        "FROM _tmp_links t WHERE m.movie_id = t.movie_id"
+    )
+    cursor.execute("DROP TABLE _tmp_links")
 
     conn.commit()
     cursor.close()
@@ -290,14 +289,16 @@ def load_personality(conn, data_dir: str) -> None:
     cursor = conn.cursor()
     personality_data = []
 
+    # Pre-fetch existing user IDs to avoid per-row queries
+    cursor.execute("SELECT user_id FROM users")
+    existing_users = {row[0] for row in cursor.fetchall()}
+
     with open(personality_path, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
             user_id = int(row['userid'])
 
-            # Check if user exists in users table
-            cursor.execute("SELECT 1 FROM users WHERE user_id = %s", (user_id,))
-            if cursor.fetchone():
+            if user_id in existing_users:
                 personality_data.append((
                     user_id,
                     float(row.get('openness', 0)),

@@ -13,7 +13,6 @@ passlib[bcrypt]==1.7.4
 # Data processing
 pandas==3.0.1
 numpy==2.4.2
-scikit-learn==1.8.0
 
 # HTTP client (for TMDB API)
 httpx==0.28.1
