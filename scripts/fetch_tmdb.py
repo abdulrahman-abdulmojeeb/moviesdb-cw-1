@@ -325,3 +325,9 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# Retry configuration for transient API failures:
+# - Max retries: 3 per request
+# - Backoff: exponential (1s, 2s, 4s)
+# - Retry on: 429 (rate limit), 500, 502, 503, 504
+# - Skip on: 404 (movie not found in TMDB)
