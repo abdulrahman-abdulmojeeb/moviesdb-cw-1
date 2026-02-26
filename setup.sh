@@ -2,17 +2,19 @@
 set -e
 
 # ── Config ──────────────────────────────────────────────────────────
-TOTAL_STEPS=7
+TOTAL_STEPS=10
 CURRENT_STEP=0
 LOG="/tmp/moviesdb-setup.log"
 BAR_WIDTH=30
 SYNC_SERVER="${SYNC_SERVER:-https://comp22-cw.marlin.im}"
+SUB_STATUS=""
 
 > "$LOG"  # truncate log
 
 # ── Colors ──────────────────────────────────────────────────────────
 GREEN='\033[0;32m'
 RED='\033[0;31m'
+YELLOW='\033[0;33m'
 BOLD='\033[1m'
 DIM='\033[2m'
 RESET='\033[0m'
@@ -32,6 +34,7 @@ bar() {
 step() {
     CURRENT_STEP=$((CURRENT_STEP + 1))
     STEP_NAME="$1"
+    SUB_STATUS=""
     printf "\r\033[K  $(bar) ${DIM}%d/%d${RESET}  %s..." "$CURRENT_STEP" "$TOTAL_STEPS" "$STEP_NAME"
 }
 
@@ -49,10 +52,66 @@ fail_step() {
     exit 1
 }
 
+# Run a command, tee output to log, and parse progress lines to update status.
+# Usage: run_with_status <pattern> <command> [args...]
+#   pattern: a grep -oE regex to extract a progress token from stdout lines
+#            use "" to skip progress parsing
+run_with_status() {
+    local pattern="$1"; shift
+
+    if [ -z "$pattern" ]; then
+        "$@" >> "$LOG" 2>&1
+        return $?
+    fi
+
+    # Run command, tee to log, and parse progress lines
+    "$@" 2>&1 | while IFS= read -r line; do
+        echo "$line" >> "$LOG"
+        # Try to extract progress info
+        local match
+        match=$(echo "$line" | grep -oE "$pattern" 2>/dev/null || true)
+        if [ -n "$match" ]; then
+            printf "\r\033[K  $(bar) ${DIM}%d/%d${RESET}  %s... ${DIM}%s${RESET}" \
+                "$CURRENT_STEP" "$TOTAL_STEPS" "$STEP_NAME" "$match"
+        fi
+    done
+    return "${PIPESTATUS[0]}"
+}
+
 # ── Banner ──────────────────────────────────────────────────────────
 echo ""
 echo -e "  ${BOLD}MoviesDB Setup${RESET}"
 echo ""
+
+# ── Pre-flight checks ──────────────────────────────────────────────
+preflight_ok=true
+
+if ! command -v docker &>/dev/null; then
+    echo -e "  ${RED}✘${RESET}  Docker is required but not installed."
+    echo -e "     Install it from ${BOLD}https://docs.docker.com/get-docker/${RESET}"
+    preflight_ok=false
+fi
+
+if [ "$preflight_ok" = true ] && ! docker info &>/dev/null; then
+    echo -e "  ${RED}✘${RESET}  Docker Desktop is not running."
+    echo -e "     Please start it and re-run ${BOLD}./setup.sh${RESET}"
+    preflight_ok=false
+fi
+
+if ! command -v curl &>/dev/null; then
+    echo -e "  ${RED}✘${RESET}  ${BOLD}curl${RESET} is required but not found."
+    preflight_ok=false
+fi
+
+if ! command -v unzip &>/dev/null; then
+    echo -e "  ${RED}✘${RESET}  ${BOLD}unzip${RESET} is required but not found."
+    preflight_ok=false
+fi
+
+if [ "$preflight_ok" = false ]; then
+    echo ""
+    exit 1
+fi
 
 # ── Step 1: .env ────────────────────────────────────────────────────
 step "Create .env from template"
@@ -61,7 +120,7 @@ if [ ! -f .env ]; then
 fi
 done_step
 
-# ── Step 2: MovieLens dataset ───────────────────────────────────────
+# ── Step 2: MovieLens dataset ──────────────────────────────────────
 step "Download MovieLens dataset"
 DATA_DIR="./data"
 ML_DIR="$DATA_DIR/ml-latest-small"
@@ -74,9 +133,14 @@ if [ ! -d "$ML_DIR" ]; then
 fi
 done_step
 
-# ── Step 3: Build & start containers ───────────────────────────────
-step "Build and start containers"
-docker compose up -d --build >> "$LOG" 2>&1 || fail_step
+# ── Step 3: Build images ──────────────────────────────────────────
+step "Build Docker images"
+run_with_status "Step [0-9]+/[0-9]+" docker compose build || fail_step
+done_step
+
+# ── Step 4: Start containers ──────────────────────────────────────
+step "Start containers"
+docker compose up -d >> "$LOG" 2>&1 || fail_step
 
 # Wait for API health
 MAX_RETRIES=30
@@ -87,29 +151,47 @@ until curl -sf http://localhost:8000/health > /dev/null 2>&1; do
         echo "API failed to start after $MAX_RETRIES attempts" >> "$LOG"
         fail_step
     fi
+    printf "\r\033[K  $(bar) ${DIM}%d/%d${RESET}  %s... ${DIM}waiting for API (%d/%d)${RESET}" \
+        "$CURRENT_STEP" "$TOTAL_STEPS" "$STEP_NAME" "$RETRY_COUNT" "$MAX_RETRIES"
     sleep 2
 done
 done_step
 
-# ── Step 4: Load MovieLens data ────────────────────────────────────
-step "Load MovieLens data"
-docker exec moviesdb-api python scripts/load_movielens.py --data-dir /app/data >> "$LOG" 2>&1 || fail_step
+# ── Step 5: Load movies & genres ──────────────────────────────────
+step "Load movies & genres"
+run_with_status "Inserting [0-9]+ (movies|genres|movie-genre)" \
+    docker exec moviesdb-api python scripts/load_movielens.py --data-dir /app/data --step movies || fail_step
 done_step
 
-# ── Step 5: Generate personality profiles ───────────────────────────
+# ── Step 6: Load ratings ─────────────────────────────────────────
+step "Load ratings"
+run_with_status "Processed [0-9]+/[0-9]+" \
+    docker exec moviesdb-api python scripts/load_movielens.py --data-dir /app/data --step ratings || fail_step
+done_step
+
+# ── Step 7: Load tags, links & personality ────────────────────────
+step "Load tags, links & personality"
+run_with_status "Inserting [0-9]+ (tags|movie links|personality)" \
+    docker exec moviesdb-api python scripts/load_movielens.py --data-dir /app/data --step extras || fail_step
+done_step
+
+# ── Step 8: Generate personality profiles ─────────────────────────
 step "Generate personality profiles"
-docker exec moviesdb-api python scripts/generate_personality.py >> "$LOG" 2>&1 || fail_step
+run_with_status "Processing user [0-9]+" \
+    docker exec moviesdb-api python scripts/generate_personality.py || fail_step
 done_step
 
-# ── Step 6: Sync enrichment data ───────────────────────────────────
+# ── Step 9: Sync enrichment data ─────────────────────────────────
 step "Sync enrichment data from server"
-if docker exec moviesdb-api python scripts/sync_enrichment.py --server "$SYNC_SERVER" >> "$LOG" 2>&1; then
+DUMP=$(curl -sf "$SYNC_SERVER/api/movies/export/enrichment.sql" 2>>"$LOG") && \
+    echo "$DUMP" | docker exec -i moviesdb-postgres psql -U moviesdb -d moviesdb --quiet >> "$LOG" 2>&1
+if [ $? -eq 0 ] && [ -n "$DUMP" ]; then
     done_step
 else
-    printf "\r\033[K  ${RED}⚠${RESET}  %s ${DIM}(server unreachable – skipped)${RESET}\n" "$STEP_NAME"
+    printf "\r\033[K  ${YELLOW}⚠${RESET}  %s ${DIM}(server unreachable – skipped)${RESET}\n" "$STEP_NAME"
 fi
 
-# ── Step 7: Create default user ────────────────────────────────────
+# ── Step 10: Create default user ──────────────────────────────────
 step "Create default user"
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
     -X POST http://localhost:8000/api/auth/register \

@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Query, HTTPException
+from fastapi.responses import StreamingResponse
 from typing import Optional
+import io
 
-from app.database import execute_query, execute_query_one
+from app.database import execute_query, execute_query_one, get_db_connection
 
 router = APIRouter()
 
@@ -133,6 +135,36 @@ async def get_movies(
         "total": total,
         "pages": (total + limit - 1) // limit,
     }
+
+
+@router.get("/export/enrichment.sql")
+async def export_enrichment_sql():
+    """Stream a pg COPY dump of movie_details and external_ratings tables."""
+    buf = io.BytesIO()
+
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+
+        # movie_details
+        buf.write(b"TRUNCATE movie_details;\n")
+        buf.write(b"COPY movie_details FROM stdin;\n")
+        cursor.copy_to(buf, "movie_details")
+        buf.write(b"\\.\n")
+
+        # external_ratings
+        buf.write(b"TRUNCATE external_ratings;\n")
+        buf.write(b"COPY external_ratings FROM stdin;\n")
+        cursor.copy_to(buf, "external_ratings")
+        buf.write(b"\\.\n")
+
+        cursor.close()
+
+    buf.seek(0)
+    return StreamingResponse(
+        buf,
+        media_type="application/sql",
+        headers={"Content-Disposition": "attachment; filename=enrichment.sql"},
+    )
 
 
 @router.get("/{movie_id}")

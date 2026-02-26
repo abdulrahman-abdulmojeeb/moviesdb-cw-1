@@ -166,7 +166,7 @@ def load_ratings(conn, data_dir: str) -> None:
 
     # Insert ratings in batches
     print(f"  Inserting {len(ratings_data)} ratings...")
-    batch_size = 10000
+    batch_size = 50000
     for i in range(0, len(ratings_data), batch_size):
         batch = ratings_data[i:i + batch_size]
         execute_values(
@@ -337,31 +337,46 @@ def main():
         default="/app/data",
         help="Directory containing MovieLens CSV files"
     )
+    parser.add_argument(
+        "--step",
+        choices=["movies", "ratings", "extras"],
+        default=None,
+        help="Run a single loading step: movies, ratings, or extras (tags+links+personality)"
+    )
     args = parser.parse_args()
 
-
-# Auto-detect the ml-latest-small subfolder
+    # Auto-detect the ml-latest-small subfolder
     effective_data_dir = args.data_dir
     potential_subdir = os.path.join(args.data_dir, "ml-latest-small")
-    
+
     if os.path.exists(potential_subdir) and os.path.isdir(potential_subdir):
         effective_data_dir = potential_subdir
         print(f"Detected MovieLens subfolder: {effective_data_dir}")
-        
 
     print(f"MovieLens Data Loader")
     print(f"Data directory: {args.data_dir}")
+    if args.step:
+        print(f"Step: {args.step}")
     print(f"Started at: {datetime.now()}")
     print("-" * 50)
 
     conn = get_db_connection()
 
     try:
-        load_movies(conn, effective_data_dir)
-        load_ratings(conn, effective_data_dir)
-        load_tags(conn, effective_data_dir)
-        load_links(conn, effective_data_dir)
-        load_personality(conn, effective_data_dir)
+        if args.step == "movies":
+            load_movies(conn, effective_data_dir)
+        elif args.step == "ratings":
+            load_ratings(conn, effective_data_dir)
+        elif args.step == "extras":
+            load_tags(conn, effective_data_dir)
+            load_links(conn, effective_data_dir)
+            load_personality(conn, effective_data_dir)
+        else:
+            load_movies(conn, effective_data_dir)
+            load_ratings(conn, effective_data_dir)
+            load_tags(conn, effective_data_dir)
+            load_links(conn, effective_data_dir)
+            load_personality(conn, effective_data_dir)
 
         print("-" * 50)
         print("Data loading complete!")
