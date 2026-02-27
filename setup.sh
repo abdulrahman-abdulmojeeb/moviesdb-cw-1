@@ -196,7 +196,7 @@ step "Create default user"
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
     -X POST http://localhost:8000/api/auth/register \
     -H "Content-Type: application/json" \
-    -d '{"username":"admin","password":"comp22","email":"admin@moviesdb.local","invite_token":"b89c7ef625663c6d6e7d4e76dedb6d3e"}')
+    -d '{"username":"admin","password":"comp22","invite_token":"b89c7ef625663c6d6e7d4e76dedb6d3e"}')
 
 if [ "$HTTP_CODE" = "201" ] || [ "$HTTP_CODE" = "400" ]; then
     done_step
