@@ -26,18 +26,22 @@ A full-stack web application for exploring and analysing the MovieLens dataset, 
 ## Quick Start
 
 ```bash
-chmod +x setup.sh
+git clone https://github.com/abdulrahman-abdulmojeeb/movies-db.git
+cd movies-db
 ./setup.sh
 ```
 
 This will:
 1. Create a `.env` file from `.env.example` (if not present)
 2. Download the MovieLens small dataset
-3. Build and start Docker containers
-4. Initialise the database schema and indexes
-5. Load movie, rating, and tag data
-6. Generate synthetic personality profiles
-7. Optionally enrich with TMDB/OMDB data (if API keys provided)
+3. Build Docker images
+4. Start containers and wait for API health
+5. Load movies & genres
+6. Load ratings (~100K rows)
+7. Load tags, links & personality data
+8. Generate synthetic personality profiles
+9. Sync enrichment data (posters, overviews, external ratings) from production server
+10. Create default user (`admin` / `comp22`)
 
 ## Services
 
