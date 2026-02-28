@@ -181,14 +181,21 @@ run_with_status "Processing user [0-9]+" \
     docker exec moviesdb-api python scripts/generate_personality.py || fail_step
 done_step
 
-# ── Step 9: Sync enrichment data ─────────────────────────────────
-step "Sync enrichment data from server"
-DUMP=$(curl -sf "$SYNC_SERVER/api/movies/export/enrichment.sql" 2>>"$LOG") && \
-    echo "$DUMP" | docker exec -i moviesdb-postgres psql -U moviesdb -d moviesdb --quiet >> "$LOG" 2>&1
-if [ $? -eq 0 ] && [ -n "$DUMP" ]; then
+# ── Step 9: Load enrichment data ─────────────────────────────────
+step "Load enrichment data (posters, overviews, ratings)"
+ENRICHMENT_SQL="./database/enrichment_data.sql"
+if [ -f "$ENRICHMENT_SQL" ]; then
+    docker exec -i moviesdb-postgres psql -U moviesdb -d moviesdb --quiet < "$ENRICHMENT_SQL" >> "$LOG" 2>&1 || fail_step
     done_step
 else
-    printf "\r\033[K  ${YELLOW}⚠${RESET}  %s ${DIM}(server unreachable – skipped)${RESET}\n" "$STEP_NAME"
+    # Fallback: try fetching from server
+    DUMP=$(curl -sf "$SYNC_SERVER/api/movies/export/enrichment.sql" 2>>"$LOG") && \
+        echo "$DUMP" | docker exec -i moviesdb-postgres psql -U moviesdb -d moviesdb --quiet >> "$LOG" 2>&1
+    if [ $? -eq 0 ] && [ -n "$DUMP" ]; then
+        done_step
+    else
+        printf "\r\033[K  ${YELLOW}⚠${RESET}  %s ${DIM}(data not available – skipped)${RESET}\n" "$STEP_NAME"
+    fi
 fi
 
 # ── Step 10: Create default user ──────────────────────────────────
