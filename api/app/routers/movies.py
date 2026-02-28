@@ -263,3 +263,9 @@ async def get_movie_ratings(movie_id: int):
         "distribution": distribution,
         "stats": stats,
     }
+
+# Input validation notes:
+# - page/page_size: bounded to 1-100 via Query(ge=1, le=100)
+# - sort_by: restricted to whitelist (title, release_year, rating)
+# - genre filter: validated against genres table before query execution
+# - year range: min_year must not exceed max_year
