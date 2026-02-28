@@ -5,3 +5,8 @@ metadata:
   labels:
     app.kubernetes.io/name: moviesdb
     app.kubernetes.io/part-of: moviesdb
+
+# Additional namespace metadata:
+# - app.kubernetes.io/part-of: moviesdb
+# - app.kubernetes.io/managed-by: kubectl
+# Apply with: kubectl apply -f k8s/namespace.yaml
