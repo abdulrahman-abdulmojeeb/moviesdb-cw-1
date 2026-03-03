@@ -239,3 +239,9 @@ async def get_preview_panel_prediction(
             "panel_coverage": result["panel_members_with_data"],
         },
     }
+
+# Error handling strategy:
+# - 404: movie_id not found in database
+# - 422: invalid genre string (not in genres table)
+# - 400: panel_size out of range (must be 5-100)
+# - 500: unexpected database errors wrapped with detail message
