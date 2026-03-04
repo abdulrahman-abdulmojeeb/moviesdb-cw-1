@@ -106,16 +106,17 @@ export interface Collection {
   movie_count: number
 }
 
-export interface CollectionDetail extends Collection {
-  movies_by_genre: {
-    genre: string
-    movies: {
-      movie_id: number
-      title: string
-      release_year: number
-      avg_rating: number
-      added_at: string
-    }[]
+export interface CollectionDetail {
+  collection_id: number
+  title: string
+  note?: string
+  movies: {
+    movie_id: number
+    title: string
+    release_year: number
+    avg_rating: number
+    added_at: string
+    genres: string[]
   }[]
 }
 

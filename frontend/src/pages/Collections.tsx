@@ -247,48 +247,50 @@ export default function Collections() {
                 </div>
               </CardHeader>
               <CardContent>
-                {collectionDetail.movies_by_genre?.length > 0 ? (
-                  <div className="space-y-6">
-                    {collectionDetail.movies_by_genre.map((group) => (
-                      <div key={group.genre}>
-                        <h3 className="font-medium mb-2 flex items-center gap-2">
-                          <Badge>{group.genre}</Badge>
-                          <span className="text-muted-foreground text-sm">
-                            {group.movies.length} movies
-                          </span>
-                        </h3>
-                        <div className="space-y-2">
-                          {group.movies.map((movie) => (
-                            <div
-                              key={movie.movie_id}
-                              className="flex justify-between items-center p-2 bg-muted rounded-md"
+              {collectionDetail.movies?.length > 0 ? (
+                  <div className="space-y-2">
+                    {collectionDetail.movies.map((movie) => (
+                      <div
+                        key={movie.movie_id}
+                        className="flex justify-between items-center p-3 bg-muted rounded-md gap-4"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Link
+                              to={`/movies/${movie.movie_id}`}
+                              className="font-medium hover:text-primary transition-colors"
                             >
-                              <div>
-                                <span className="font-medium">{movie.title}</span>
-                                <span className="text-muted-foreground text-sm ml-2">
-                                  ({movie.release_year})
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-4">
-                                <span className="text-sm text-muted-foreground">
-                                  {movie.avg_rating} stars
-                                </span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 text-destructive hover:text-destructive"
-                                  onClick={() =>
-                                    removeMovieMutation.mutate({
-                                      collectionId: selectedCollection,
-                                      movieId: movie.movie_id,
-                                    })
-                                  }
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
+                              {movie.title}
+                            </Link>
+                            <span className="text-muted-foreground text-sm">
+                              ({movie.release_year})
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {movie.genres.map((genre) => (
+                              <Badge key={genre} variant="secondary" className="text-xs">
+                                {genre}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                          <span className="text-sm text-muted-foreground">
+                            ⭐ {movie.avg_rating}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-destructive hover:text-destructive"
+                            onClick={() =>
+                              removeMovieMutation.mutate({
+                                collectionId: selectedCollection,
+                                movieId: movie.movie_id,
+                              })
+                            }
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
                     ))}

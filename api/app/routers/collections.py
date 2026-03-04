@@ -68,11 +68,6 @@ async def get_collection(
     collection_id: int,
     current_user: UserRead = Depends(get_current_user),
 ):
-    """
-    Get a specific collection with movies grouped by genre.
-    Requirement 6: Films within a list are grouped by Genre
-    """
-    # Verify ownership
     collection = execute_query_one(
         "SELECT * FROM collections WHERE collection_id = %s AND user_id = %s",
         (collection_id, current_user.id)
@@ -80,38 +75,31 @@ async def get_collection(
     if not collection:
         raise HTTPException(status_code=404, detail="Collection not found")
 
-    # Get movies grouped by genre
     query = """
         SELECT
-            g.name as genre,
-            JSON_AGG(
-                JSON_BUILD_OBJECT(
-                    'movie_id', m.movie_id,
-                    'title', m.title,
-                    'release_year', m.release_year,
-                    'avg_rating', COALESCE(
-                        (SELECT ROUND(AVG(rating)::numeric, 2) FROM ratings WHERE movie_id = m.movie_id),
-                        0
-                    ),
-                    'added_at', ci.added_at
-                )
-                ORDER BY m.title
-            ) as movies
+            m.movie_id,
+            m.title,
+            m.release_year,
+            COALESCE(
+                (SELECT ROUND(AVG(rating)::numeric, 2) FROM ratings WHERE movie_id = m.movie_id),
+                0
+            ) as avg_rating,
+            ci.added_at,
+            ARRAY_AGG(g.name ORDER BY g.name) as genres
         FROM collection_items ci
         JOIN movies m ON ci.movie_id = m.movie_id
         JOIN movie_genres mg ON m.movie_id = mg.movie_id
         JOIN genres g ON mg.genre_id = g.genre_id
         WHERE ci.collection_id = %s
-        GROUP BY g.name
-        ORDER BY g.name
+        GROUP BY m.movie_id, m.title, m.release_year, ci.added_at
+        ORDER BY m.title
     """
-    movies_by_genre = execute_query(query, (collection_id,))
+    movies = execute_query(query, (collection_id,))
 
     return {
         **collection,
-        "movies_by_genre": movies_by_genre,
+        "movies": movies,
     }
-
 
 @router.put("/{collection_id}")
 async def update_collection(
