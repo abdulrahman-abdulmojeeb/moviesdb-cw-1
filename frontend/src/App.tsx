@@ -19,7 +19,6 @@ function App() {
       <Sidebar />
 
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Add top padding on mobile for fixed header */}
         <main id="main-content" className="flex-1 overflow-auto p-3 pt-16 sm:p-4 md:p-6 md:pt-6" role="main" tabIndex={-1}>
           <Routes>
             <Route path="/" element={<Dashboard />} />

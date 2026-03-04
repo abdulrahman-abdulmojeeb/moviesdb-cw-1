@@ -521,7 +521,7 @@ export default function MovieDetail() {
                   <div className="flex items-center gap-1.5">
                     <TrendingUp className="h-4 w-4 text-muted-foreground" />
                     <span className="text-muted-foreground">Std Dev:</span>
-                    <span className="font-medium">{ratingsData.stats.stddev.toFixed(2)}</span>
+                    <span className="font-medium">{ratingsData.stats.stddev?.toFixed(2)}</span>
                   </div>
                 )}
               </div>
