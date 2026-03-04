@@ -1,5 +1,5 @@
 import { useParams, useNavigate, Link } from "react-router-dom"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { moviesApi, predictionsApi } from "../services/api"
 import type { Movie, MovieRatingsResponse } from "../types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -7,6 +7,14 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
 import {
   ArrowLeft,
   Clock,
@@ -17,7 +25,10 @@ import {
   ExternalLink,
   Film,
   Award,
+  Plus, 
+  Check
 } from "lucide-react"
+import { collectionsApi } from "../services/api";
 
 interface SimilarMovie {
   movie_id: number
@@ -56,6 +67,21 @@ export default function MovieDetail() {
     queryKey: ["similar-movies", movieId],
     queryFn: () => predictionsApi.getSimilar(movieId, 6).then((res) => res.data as SimilarMoviesResponse),
     enabled: movieId > 0,
+  })
+
+  const queryClient = useQueryClient()
+
+  const { data: collectionsData } = useQuery({
+    queryKey: ["collections"],
+    queryFn: () => collectionsApi.getCollections().then((res) => res.data),
+  })
+
+  const addMovieMutation = useMutation({
+    mutationFn: (collectionId: number) =>
+      collectionsApi.addMovie(collectionId, movieId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["collections"] })
+    },
   })
 
   const formatRuntime = (minutes: number) => {
@@ -277,6 +303,37 @@ export default function MovieDetail() {
                   </Badge>
                 ))}
               </div>
+
+              {collectionsData && collectionsData.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add to Collection
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    <DropdownMenuLabel>Your Collections</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {collectionsData.map((collection: { collection_id: number; title: string }) => (
+                      <DropdownMenuItem
+                        key={collection.collection_id}
+                        onClick={() => addMovieMutation.mutate(collection.collection_id)}
+                        disabled={addMovieMutation.isPending}
+                      >
+                        {addMovieMutation.isPending ? (
+                          <Check className="h-4 w-4 mr-2 text-green-500" />
+                        ) : (
+                          <Plus className="h-4 w-4 mr-2" />
+                        )}
+                        {collection.title}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+
+
 
               {/* Overview */}
               {movie.overview && (
