@@ -81,7 +81,7 @@ async def get_collection(
             m.title,
             m.release_year,
             COALESCE(
-                (SELECT ROUND(AVG(rating)::numeric, 2) FROM ratings WHERE movie_id = m.movie_id),
+                (SELECT ROUND(AVG(rating)::numeric, 1) FROM ratings WHERE movie_id = m.movie_id),
                 0
             ) as avg_rating,
             ci.added_at,
