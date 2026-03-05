@@ -7,6 +7,7 @@ import Predictions from './pages/Predictions'
 import Personality from './pages/Personality'
 import Collections from './pages/Collections'
 import MovieDetail from './pages/MovieDetail'
+import MyRatings from './pages/MyRatings'
 import Profile from './pages/Profile'
 import BuildDetails from './pages/BuildDetails'
 
@@ -30,6 +31,7 @@ function App() {
             <Route path="/collections" element={<Collections />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/build" element={<BuildDetails />} />
+            <Route path="/my-ratings" element={<MyRatings />} />
           </Routes>
         </main>
       </div>
