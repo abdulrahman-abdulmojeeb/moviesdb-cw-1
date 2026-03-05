@@ -80,6 +80,16 @@ CREATE TABLE IF NOT EXISTS personality_users (
 
 COMMENT ON TABLE personality_users IS 'Big Five personality traits for users (Requirement 5)';
 
+
+CREATE TABLE IF NOT EXISTS personality_app_users (
+    user_id INTEGER PRIMARY KEY REFERENCES app_users(user_id) ON DELETE CASCADE,
+    openness DECIMAL(4,2) CHECK (openness >= 1.0 AND openness <= 5.0),
+    agreeableness DECIMAL(4,2) CHECK (agreeableness >= 1.0 AND agreeableness <= 5.0),
+    emotional_stability DECIMAL(4,2) CHECK (emotional_stability >= 1.0 AND emotional_stability <= 5.0),
+    conscientiousness DECIMAL(4,2) CHECK (conscientiousness >= 1.0 AND conscientiousness <= 5.0),
+    extraversion DECIMAL(4,2) CHECK (extraversion >= 1.0 AND extraversion <= 5.0)
+);
+
 -- ============================================
 -- Application User Tables (Requirement 6)
 -- ============================================
