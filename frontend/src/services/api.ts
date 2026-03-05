@@ -125,3 +125,12 @@ export const authApi = {
   refresh: () => api.post('/auth/refresh'),
   getMe: () => api.get('/auth/me'),
 }
+
+// app user ratings
+export const appRatingsApi = {
+  addOrUpdate: (movie_id: number, rating: number) =>
+    api.post('/ratings/my-ratings', { movie_id, rating }),
+  getAll: () => api.get('/ratings/my-ratings'),
+  getForMovie: (movie_id: number) => api.get(`/ratings/my-ratings/${movie_id}`),
+  delete: (movie_id: number) => api.delete(`/ratings/my-ratings/${movie_id}`),
+}

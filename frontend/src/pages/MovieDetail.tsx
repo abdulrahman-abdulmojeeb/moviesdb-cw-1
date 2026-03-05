@@ -28,7 +28,7 @@ import {
   Plus, 
   Check
 } from "lucide-react"
-import { collectionsApi } from "../services/api";
+import { collectionsApi, appRatingsApi } from "../services/api";
 
 interface SimilarMovie {
   movie_id: number
@@ -186,6 +186,25 @@ export default function MovieDetail() {
     return count.toLocaleString()
   }
 
+  const isLoggedIn = !!localStorage.getItem("access_token")
+
+  const { data: myRating, refetch: refetchMyRating } = useQuery({
+    queryKey: ["my-rating", movieId],
+    queryFn: () => appRatingsApi.getForMovie(movieId).then(res => res.data),
+    enabled: movieId > 0 && isLoggedIn,
+    retry: false, // 404 = no rating yet, don't retry
+  })
+
+  const ratingMutation = useMutation({
+    mutationFn: (rating: number) => appRatingsApi.addOrUpdate(movieId, rating),
+    onSuccess: () => refetchMyRating(),
+  })
+
+  const deleteRatingMutation = useMutation({
+    mutationFn: () => appRatingsApi.delete(movieId),
+    onSuccess: () => refetchMyRating(),
+  })
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -303,6 +322,41 @@ export default function MovieDetail() {
                   </Badge>
                 ))}
               </div>
+
+              {isLoggedIn && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">Your Rating:</span>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        onClick={() => ratingMutation.mutate(star)}
+                        disabled={ratingMutation.isPending}
+                        className="focus:outline-none"
+                      >
+                        <Star
+                          className={`h-6 w-6 transition-colors ${
+                            myRating && myRating.rating >= star
+                              ? "fill-yellow-400 text-yellow-400"
+                              : "text-muted-foreground hover:text-yellow-400"
+                          }`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                  {myRating && (
+                    <button
+                      onClick={() => deleteRatingMutation.mutate()}
+                      className="text-xs text-muted-foreground hover:text-destructive transition-colors ml-1"
+                    >
+                      Remove
+                    </button>
+                  )}
+                  {!isLoggedIn && (
+                    <span className="text-xs text-muted-foreground">Login to rate</span>
+                  )}
+                </div>
+              )}
 
               {collectionsData && collectionsData.length > 0 && (
                 <DropdownMenu>

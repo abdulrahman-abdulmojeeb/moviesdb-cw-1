@@ -1,10 +1,19 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Depends, HTTPException
+from app.database import execute_query, execute_query_one, execute_returning
 from typing import Optional
+from app.auth.users import get_current_user, UserRead
+from pydantic import BaseModel, Field
 
 from app.database import execute_query
 
 router = APIRouter()
 
+class AppUserRatingCreate(BaseModel):
+    movie_id: int
+    rating: float = Field(..., ge=0.5, le=5.0)
+
+class AppUserRatingUpdate(BaseModel):
+    rating: float = Field(..., ge=0.5, le=5.0)
 
 @router.get("/patterns")
 async def get_rating_patterns():
@@ -167,3 +176,80 @@ async def get_rating_consistency(
         ORDER BY consistency_level
     """
     return execute_query(query, params if params else None)
+
+
+@router.post("/my-ratings")
+async def add_rating(
+    data: AppUserRatingCreate,
+    current_user: UserRead = Depends(get_current_user),
+):
+    """Add or update a rating for a movie by the logged-in app user."""
+    import time
+    existing = execute_query_one(
+        "SELECT * FROM app_user_ratings WHERE user_id = %s AND movie_id = %s",
+        (current_user.id, data.movie_id)
+    )
+    if existing:
+        return execute_returning(
+            """
+            UPDATE app_user_ratings SET rating = %s, timestamp = %s
+            WHERE user_id = %s AND movie_id = %s
+            RETURNING *
+            """,
+            (data.rating, int(time.time()), current_user.id, data.movie_id)
+        )
+    return execute_returning(
+        """
+        INSERT INTO app_user_ratings (user_id, movie_id, rating, timestamp)
+        VALUES (%s, %s, %s, %s)
+        RETURNING *
+        """,
+        (current_user.id, data.movie_id, data.rating, int(time.time()))
+    )
+
+@router.get("/my-ratings")
+async def get_my_ratings(
+    current_user: UserRead = Depends(get_current_user),
+):
+    """Get all ratings submitted by the logged-in app user."""
+    return execute_query(
+        """
+        SELECT aur.movie_id, aur.rating, aur.timestamp, m.title, m.release_year
+        FROM app_user_ratings aur
+        JOIN movies m ON aur.movie_id = m.movie_id
+        WHERE aur.user_id = %s
+        ORDER BY aur.timestamp DESC
+        """,
+        (current_user.id,)
+    )
+
+@router.get("/my-ratings/{movie_id}")
+async def get_my_rating_for_movie(
+    movie_id: int,
+    current_user: UserRead = Depends(get_current_user),
+):
+    """Get the logged-in user's rating for a specific movie, if it exists."""
+    rating = execute_query_one(
+        "SELECT * FROM app_user_ratings WHERE user_id = %s AND movie_id = %s",
+        (current_user.id, movie_id)
+    )
+    if not rating:
+        raise HTTPException(status_code=404, detail="Rating not found")
+    return rating
+
+@router.delete("/my-ratings/{movie_id}")
+async def delete_my_rating(
+    movie_id: int,
+    current_user: UserRead = Depends(get_current_user),
+):
+    """Delete the logged-in user's rating for a specific movie."""
+    deleted = execute_returning(
+        """
+        DELETE FROM app_user_ratings WHERE user_id = %s AND movie_id = %s
+        RETURNING *
+        """,
+        (current_user.id, movie_id)
+    )
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Rating not found")
+    return {"detail": "Rating deleted"}
