@@ -15,13 +15,7 @@ A full-stack web application for exploring and analysing the MovieLens dataset, 
 
 ## Architecture
 
-```
-┌─────────────┐     ┌──────────────┐     ┌──────────────┐
-│   Frontend   │────▶│   API Server  │────▶│  PostgreSQL   │
-│  React + TS  │     │   FastAPI     │     │   16-alpine   │
-│  port 5173   │     │   port 8000   │     │   port 5432   │
-└─────────────┘     └──────────────┘     └──────────────┘
-```
+![System Diagram](images/system_diagram_databases.png)
 
 ## Quick Start
 
