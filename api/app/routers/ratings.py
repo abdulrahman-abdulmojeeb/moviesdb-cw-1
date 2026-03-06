@@ -253,3 +253,121 @@ async def delete_my_rating(
     if not deleted:
         raise HTTPException(status_code=404, detail="Rating not found")
     return {"detail": "Rating deleted"}
+
+
+@router.get("/recommendations")
+async def get_recommendations(
+    current_user: UserRead = Depends(get_current_user),
+):
+    user_rating_count = execute_query_one(
+        "SELECT COUNT(*) as count FROM app_user_ratings WHERE user_id = %s",
+        (current_user.id,)
+    )
+    count = user_rating_count["count"] if user_rating_count else 0
+
+    recommendations = []
+    method = "none"
+
+    if count >= 5:
+        # use pearson correlation coefficient to find similar users from both app users and movielens dataset and
+        # get recommendations based on whatever they have reviewed highest 
+        recommendations = execute_query("""
+            WITH app_user_input AS (
+                SELECT movie_id, (rating * 2) as rating
+                FROM app_user_ratings
+                WHERE user_id = %s
+            ),
+            all_ratings AS (
+                SELECT user_id::text as user_key, movie_id, (rating * 2) as rating
+                FROM ratings
+                UNION ALL
+                SELECT ('app_' || user_id::text) as user_key, movie_id, (rating * 2) as rating
+                FROM app_user_ratings
+                WHERE user_id != %s
+            ),
+            similar_users AS (
+                SELECT
+                    ar.user_key,
+                    CORR(ar.rating, aui.rating) as correlation,
+                    COUNT(*) as common_movies
+                FROM all_ratings ar
+                JOIN app_user_input aui ON ar.movie_id = aui.movie_id
+                GROUP BY ar.user_key
+                HAVING COUNT(*) >= 3 AND CORR(ar.rating, aui.rating) > 0
+                ORDER BY correlation DESC
+                LIMIT 100
+            ),
+            candidate_movies AS (
+                SELECT
+                    ar.movie_id,
+                    SUM(ar.rating * su.correlation) / SUM(su.correlation) as predicted_rating,
+                    COUNT(DISTINCT su.user_key) as vote_count
+                FROM all_ratings ar
+                JOIN similar_users su ON ar.user_key = su.user_key
+                WHERE ar.movie_id NOT IN (SELECT movie_id FROM app_user_input)
+                AND ar.rating >= 7
+                GROUP BY ar.movie_id
+                HAVING COUNT(DISTINCT su.user_key) >= 2
+            )
+            SELECT
+                m.movie_id,
+                m.title,
+                m.release_year,
+                ROUND(cm.predicted_rating::numeric, 2) as predicted_rating,
+                cm.vote_count,
+                md.poster_path,
+                ARRAY_AGG(DISTINCT g.name ORDER BY g.name) as genres,
+                'collaborative' as method
+            FROM candidate_movies cm
+            JOIN movies m ON cm.movie_id = m.movie_id
+            LEFT JOIN movie_details md ON m.movie_id = md.movie_id
+            LEFT JOIN movie_genres mg ON m.movie_id = mg.movie_id
+            LEFT JOIN genres g ON mg.genre_id = g.genre_id
+            GROUP BY m.movie_id, m.title, m.release_year, cm.predicted_rating, cm.vote_count, md.poster_path
+            ORDER BY cm.predicted_rating DESC, cm.vote_count DESC
+            LIMIT 20
+        """, (current_user.id, current_user.id))
+
+        if recommendations:
+            method = "collaborative"
+
+    #fall back to content based (similar genres) if collaborative returned nothing OR user has < 5 ratings
+    if not recommendations:
+        recommendations = execute_query("""
+            WITH liked_genres AS (
+                SELECT mg.genre_id, AVG(aur.rating) as genre_affinity
+                FROM app_user_ratings aur
+                JOIN movie_genres mg ON aur.movie_id = mg.movie_id
+                WHERE aur.user_id = %s
+                GROUP BY mg.genre_id
+            ),
+            rated_movies AS (
+                SELECT movie_id FROM app_user_ratings WHERE user_id = %s
+            )
+            SELECT
+                m.movie_id,
+                m.title,
+                m.release_year,
+                ROUND(SUM(lg.genre_affinity)::numeric, 2) as predicted_rating,
+                COUNT(*) as vote_count,
+                md.poster_path,
+                ARRAY_AGG(DISTINCT g.name ORDER BY g.name) as genres,
+                'content_based' as method
+            FROM movies m
+            JOIN movie_genres mg ON m.movie_id = mg.movie_id
+            JOIN liked_genres lg ON mg.genre_id = lg.genre_id
+            LEFT JOIN movie_details md ON m.movie_id = md.movie_id
+            LEFT JOIN genres g ON mg.genre_id = g.genre_id
+            WHERE m.movie_id NOT IN (SELECT movie_id FROM rated_movies)
+            GROUP BY m.movie_id, m.title, m.release_year, md.poster_path
+            ORDER BY predicted_rating DESC
+            LIMIT 20
+        """, (current_user.id, current_user.id))
+
+        method = "content_based" if recommendations else "none"
+
+    return {
+        "method": method,
+        "ratings_count": count,
+        "recommendations": recommendations
+    }
