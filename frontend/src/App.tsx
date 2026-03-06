@@ -10,6 +10,7 @@ import MovieDetail from './pages/MovieDetail'
 import MyRatings from './pages/MyRatings'
 import Profile from './pages/Profile'
 import BuildDetails from './pages/BuildDetails'
+import Recommendations from './pages/Recommendations'
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/build" element={<BuildDetails />} />
             <Route path="/my-ratings" element={<MyRatings />} />
+            <Route path="/recommendations" element={<Recommendations />} />
           </Routes>
         </main>
       </div>

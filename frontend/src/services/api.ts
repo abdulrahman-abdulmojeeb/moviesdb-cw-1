@@ -134,3 +134,8 @@ export const appRatingsApi = {
   getForMovie: (movie_id: number) => api.get(`/ratings/my-ratings/${movie_id}`),
   delete: (movie_id: number) => api.delete(`/ratings/my-ratings/${movie_id}`),
 }
+
+// get recommendations for the app user
+export const recommendationsApi = {
+  get: () => api.get('/ratings/recommendations'),
+}
